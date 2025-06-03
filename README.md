@@ -14,3 +14,5 @@ Developing frameworks to integrate real-time EEG feedback with language models t
 **This is a working method, actively researched and personally tested—NOT just a concept.**
 
 Despite promising preliminary results, my progress is hindered by limited access to high-density EEG equipment (256+ channels) and the absence of rigorous clinical validation necessary to advance these methods toward recognized standards. I am seeking collaboration or facility access that could support these efforts. Even an opportunity to observe research would be an invaluable stepping point.
+
+⚠️ Security Reminder: Always verify the source of files and links before opening. Beware of phishing attempts that may mimic trusted sources.

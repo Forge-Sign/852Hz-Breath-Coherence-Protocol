@@ -1,0 +1,238 @@
+Below is a ruudementary python code used in Jupyter Notebook for a breathmarking outline, typically in a bell curve pattern
+
+import pygame
+import numpy as np
+import sounddevice as sd
+import csv
+import time
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+
+# ----- CONFIGURATION -----
+session_duration_sec = 60  # Total session length in seconds (easy to change)
+num_phases = 6             # Choose 3, 6, or 9 phases
+phase_duration_sec = session_duration_sec / num_phases  # Phase length
+
+# ----- DEFINE PHASES -----
+base_phases_3 = ["rise", "peak", "fall"]
+base_freqs_3 = [396, 852, 528]  # Frequencies for 3 phases
+base_colors_3 = [(100, 200, 255), (255, 255, 100), (255, 150, 150)]  # RGB colors
+
+def interpolate_phases(n):
+    """Generate interpolated phases, frequencies, and colors for 6 or 9 phases."""
+    phases = []
+    freqs = []
+    colors = []
+    for i in range(n):
+        t = (i / n) * 3  # map index to base 3 phases scale
+        idx = int(t) % 3
+        next_idx = (idx + 1) % 3
+        frac = t - idx
+        phase_name = f"{base_phases_3[idx]}_{i+1}"
+        freq = base_freqs_3[idx] * (1 - frac) + base_freqs_3[next_idx] * frac
+        color = tuple(
+            int(base_colors_3[idx][j] * (1 - frac) + base_colors_3[next_idx][j] * frac)
+            for j in range(3)
+        )
+        phases.append(phase_name)
+        freqs.append(freq)
+        colors.append(color)
+    return phases, freqs, colors
+
+if num_phases == 3:
+    phases = base_phases_3
+    frequencies = dict(zip(phases, base_freqs_3))
+    colors = dict(zip(phases, base_colors_3))
+elif num_phases in (6, 9):
+    phases, freq_list, color_list = interpolate_phases(num_phases)
+    frequencies = dict(zip(phases, freq_list))
+    colors = dict(zip(phases, color_list))
+else:
+    raise ValueError("num_phases must be 3, 6, or 9")
+
+# ----- SOUND SETUP -----
+sample_rate = 44100
+
+class TonePlayer:
+    def __init__(self, freq):
+        self.frequency = freq
+        self.target_freq = freq
+        self.phase = 0.0
+        self.phase_inc = 2 * np.pi * self.frequency / sample_rate
+        self.transition_steps = 0
+        self.transition_step = 0
+        self.freq_step = 0.0
+        self.panic_triggered = False
+
+    def start_transition(self, new_freq, duration=0.5):
+        self.target_freq = new_freq
+        self.transition_steps = int(sample_rate * duration / 1024)
+        if self.transition_steps == 0:
+            self.frequency = new_freq
+            self.phase_inc = 2 * np.pi * self.frequency / sample_rate
+            self.transition_step = 0
+            self.freq_step = 0.0
+        else:
+            self.freq_step = (self.target_freq - self.frequency) / self.transition_steps
+            self.transition_step = 0
+
+    def trigger_panic(self):
+        self.start_transition(0)
+        self.panic_triggered = True
+
+    def callback(self, outdata, frames, time_info, status):
+        if self.panic_triggered:
+            outdata[:] = np.zeros((frames, 1), dtype=np.float32)
+            return
+        if self.transition_step < self.transition_steps:
+            current_freq = self.frequency + self.freq_step * self.transition_step
+            self.phase_inc = 2 * np.pi * current_freq / sample_rate
+            self.transition_step += 1
+        else:
+            self.frequency = self.target_freq
+            self.phase_inc = 2 * np.pi * self.frequency / sample_rate
+
+        phase_array = self.phase + np.arange(frames) * self.phase_inc
+        samples = np.sin(phase_array).astype(np.float32)
+        outdata[:] = samples.reshape(-1, 1)
+        self.phase = (self.phase + frames * self.phase_inc) % (2 * np.pi)
+
+# ----- PYGAME SETUP -----
+pygame.init()
+screen = pygame.display.set_mode((600, 600))
+pygame.display.set_caption("Automated Breath Mirror")
+clock = pygame.time.Clock()
+
+player = TonePlayer(frequencies[phases[0]])
+stream = sd.OutputStream(channels=1, callback=player.callback, samplerate=sample_rate, blocksize=1024)
+stream.start()
+
+# ----- LOGGING SETUP -----
+logfile = "breathmirror_log.csv"
+log_fields = ["elapsed_time", "event", "phase", "frequency"]
+log_file = open(logfile, mode="w", newline="")
+writer = csv.writer(log_file)
+writer.writerow(log_fields)
+
+# ----- PANIC BUTTON SETUP -----
+panic_keys = set()
+PANIC_COMBO = {pygame.K_SPACE, pygame.K_p}
+PANIC_HOLD_TIME = 2.0
+panic_hold_start = None
+panic_engaged = False
+
+def check_panic():
+    global panic_engaged, panic_hold_start
+    if PANIC_COMBO.issubset(panic_keys):
+        if panic_hold_start is None:
+            panic_hold_start = time.time()
+        elif time.time() - panic_hold_start > PANIC_HOLD_TIME:
+            panic_engaged = True
+            player.trigger_panic()
+            print("PANIC BUTTON HELD — SIGNAL STOPPED")
+    else:
+        panic_hold_start = None
+
+# ----- MAIN LOOP -----
+start_time = time.time()
+current_phase_index = 0
+phase_start_time = start_time
+
+running = True
+
+while running and not panic_engaged:
+    current_time = time.time()
+    elapsed = current_time - start_time
+
+    check_panic()
+
+    # Check if session is done
+    if elapsed >= session_duration_sec:
+        running = False
+        print("Session complete.")
+        break
+
+    # Automatic phase switching
+    if current_time - phase_start_time >= phase_duration_sec:
+        current_phase_index = (current_phase_index + 1) % num_phases
+        phase_start_time = current_time
+        phase_name = phases[current_phase_index]
+        freq = frequencies[phase_name]
+        player.start_transition(freq, duration=0.5)
+        writer.writerow([round(elapsed, 3), "phase_change", phase_name, round(freq, 2)])
+        log_file.flush()
+
+    # Event handling
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+            break
+        elif event.type == pygame.KEYDOWN:
+            panic_keys.add(event.key)
+            if event.key == pygame.K_SPACE:
+                # Breath mark (manual marker at top inhale)
+                writer.writerow([round(elapsed, 3), "breath_mark", phases[current_phase_index], round(frequencies[phases[current_phase_index]], 2)])
+                log_file.flush()
+                # Quick white flash for visual feedback
+                screen.fill((255, 255, 255))
+                pygame.display.flip()
+                pygame.time.delay(100)
+        elif event.type == pygame.KEYUP:
+            panic_keys.discard(event.key)
+
+    # Draw orb with current phase color and animated size
+    current_phase = phases[current_phase_index]
+    current_color = colors[current_phase]
+    # Orb radius oscillates between 40 and 120 pixels with 4-second period
+    orb_radius_base = 80
+    orb_radius = orb_radius_base + 40 * np.sin(2 * np.pi * (current_time % 4) / 4)
+
+    screen.fill((0, 0, 0))
+    pygame.draw.circle(screen, current_color, (300, 300), int(orb_radius))
+    pygame.display.flip()
+
+    clock.tick(60)
+
+# ----- POST-SESSION BREATH WAVE ANIMATION -----
+def breath_wave_animation():
+    breath_frequency = 0.25  # Hz (4s period)
+    sample_rate_plot = 60
+    duration = 20
+    fig, ax = plt.subplots()
+    ax.set_xlim(0, duration)
+    ax.set_ylim(-1.2, 1.2)
+    ax.set_title("Simulated Breath Wave (Post Session)")
+    ax.set_xlabel("Time (s)")
+    ax.set_ylabel("Amplitude")
+    x_data = []
+    y_data = []
+    line, = ax.plot([], [], lw=2, color='crimson')
+
+    def init():
+        line.set_data([], [])
+        return line,
+
+    def update(frame):
+        t = frame / sample_rate_plot
+        x_data.append(t)
+        y_data.append(np.sin(2 * np.pi * breath_frequency * t))
+        if x_data[-1] > duration:
+            x_data.pop(0)
+            y_data.pop(0)
+        line.set_data(x_data, y_data)
+        ax.set_xlim(max(0, t - duration), t)
+        return line,
+
+    ani = FuncAnimation(fig, update, frames=range(sample_rate_plot * duration),
+                        init_func=init, blit=True, interval=1000 / sample_rate_plot)
+    plt.show()
+
+if panic_engaged or not running:
+    breath_wave_animation()
+
+# ----- CLEANUP -----
+stream.stop()
+stream.close()
+log_file.close()
+pygame.quit()
+print("Exited cleanly.")

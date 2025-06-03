@@ -12,3 +12,5 @@ Establishing gamma-band synchronization as a biomarker for computational problem
 Developing frameworks to integrate real-time EEG feedback with language models to improve the fidelity of neuro-cognitive interfaces.->Naturalistic collaboration: Allows AI to operate as a cognitive partner, not just a tool
 
 **This is a working method, actively researched and personally tested—NOT just a concept.**
+
+Despite promising preliminary results, my progress is hindered by limited access to high-density EEG equipment (256+ channels) and the absence of rigorous clinical validation necessary to advance these methods toward recognized standards. I am seeking collaboration or facility access that could support these efforts. Even an opportunity to observe research would be an invaluable stepping point.

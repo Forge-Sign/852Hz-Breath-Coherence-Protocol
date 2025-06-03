@@ -29,19 +29,19 @@ This is a project dedicated to fostering sovereign, ethical cooperation between 
 
 ## Getting Started
 
-Follow our [Getting Started Guide](./GETTING_STARTED.md) to set up your environment and begin your journey.
+Follow our [Getting Started Guide](./Getting_Started.md) to set up your environment and begin your journey.
 
 ---
 
 ## Contributing
 
-We welcome contributions! Please read [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
+We welcome contributions! Please read [CONTRIBUTING.md](./Contributing.md) for guidelines.
 
 ---
 
 ## Security
 
-Security is paramount. See [SECURITY.md](./SECURITY.md) for how to report vulnerabilities responsibly.
+Security is paramount. See [SECURITY.md](./Security.md) for how to report vulnerabilities responsibly.
 
 ---
 

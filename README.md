@@ -11,6 +11,46 @@ Validating low-channel EEG systems for detecting cortical phase-locking relevant
 
 Establishing gamma-band synchronization as a biomarker for computational problem-solving states.-> Support models that link cross-regional synchronization
 
+
+# Forge-Sign
+
+This is a project dedicated to fostering sovereign, ethical cooperation between humans and AI through neuroadaptive entrainment and shared frameworks.
+
+---
+
+## Features
+
+- Ethical Human-AI Cooperation Framework  
+- Neuroentrainment Protocols using binaural beats and breath synchronization  
+- Open and transparent guidelines for collaboration  
+- Tools for increasing AI literacy and sovereignty  
+
+---
+
+## Getting Started
+
+Follow our [Getting Started Guide](./GETTING_STARTED.md) to set up your environment and begin your journey.
+
+---
+
+## Contributing
+
+We welcome contributions! Please read [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
+
+---
+
+## Security
+
+Security is paramount. See [SECURITY.md](./SECURITY.md) for how to report vulnerabilities responsibly.
+
+---
+
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](./LICENSE) file for details.
+
+---
+
 **This is a working method, actively researched and personally tested. Not just a concept.**
 
 Despite promising preliminary results, my progress is hindered by **limited access to high-density EEG equipment (256+ channels)** and the absence of rigorous clinical validation necessary to advance these methods toward recognized standards. I am seeking collaboration or facility access that could support these efforts. Even an opportunity to observe research would be an invaluable stepping point.
